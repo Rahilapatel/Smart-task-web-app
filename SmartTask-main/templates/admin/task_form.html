@@ -1,0 +1,232 @@
+{% extends "layout.html" %}
+
+{% block title %}{% if task %}Edit Task{% else %}New Task{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">{% if task %}Edit Task{% else %}New Task{% endif %}</h1>
+    <a href="{{ url_for('admin_tasks') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Back to Tasks
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-primary bg-opacity-25">
+        <h5 class="mb-0">AI Task Generator</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label for="ai_service_type" class="form-label">Service Type</label>
+                <select class="form-select" id="ai_service_type">
+                    <option value="">Select Service Type</option>
+                    <option value="Legal">Legal</option>
+                    <option value="Consulting">Consulting</option>
+                    <option value="Compliance">Compliance</option>
+                    <option value="IT">IT</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-8 mb-3">
+                <label for="ai_keywords" class="form-label">Task Keywords</label>
+                <input type="text" class="form-control" id="ai_keywords" placeholder="Enter keywords or brief description">
+            </div>
+            <div class="col-12">
+                <button type="button" id="generate-task-btn" class="btn btn-primary">
+                    <i class="fas fa-robot me-2"></i> Generate Task
+                </button>
+                <button type="button" id="analyze-priority-btn" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-star-half-alt me-2"></i> Suggest Priority
+                </button>
+                <div id="ai-generation-status" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('edit_task', task_id=task.id) if task else url_for('new_task') }}">
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label for="title" class="form-label">Task Title</label>
+                    <input type="text" class="form-control" id="title" name="title" required
+                           value="{{ task.title if task else '' }}">
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="client_id" class="form-label">Assign to Client</label>
+                    <select class="form-select" id="client_id" name="client_id" required>
+                        <option value="">Select Client</option>
+                        {% for client in clients %}
+                        <option value="{{ client.id }}" {% if task and task.client_id == client.id %}selected{% endif %}>
+                            {{ client.username }} ({{ client.email }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-12 mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="4">{{ task.description if task else '' }}</textarea>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="service_type" class="form-label">Service Type</label>
+                    <select class="form-select" id="service_type" name="service_type">
+                        <option value="">Select Service Type</option>
+                        <option value="Legal" {% if task and task.service_type == 'Legal' %}selected{% endif %}>Legal</option>
+                        <option value="Consulting" {% if task and task.service_type == 'Consulting' %}selected{% endif %}>Consulting</option>
+                        <option value="Compliance" {% if task and task.service_type == 'Compliance' %}selected{% endif %}>Compliance</option>
+                        <option value="IT" {% if task and task.service_type == 'IT' %}selected{% endif %}>IT</option>
+                        <option value="Other" {% if task and task.service_type == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="priority" class="form-label">Priority</label>
+                    <select class="form-select" id="priority" name="priority" required>
+                        <option value="low" {% if task and task.priority == 'low' %}selected{% endif %}>Low</option>
+                        <option value="medium" {% if task and task.priority == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="high" {% if task and task.priority == 'high' %}selected{% endif %}>High</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label for="deadline" class="form-label">Deadline</label>
+                    <input type="datetime-local" class="form-control" id="deadline" name="deadline"
+                           value="{{ task.deadline.strftime('%Y-%m-%dT%H:%M') if task and task.deadline else '' }}">
+                </div>
+                
+                <div class="col-12 mt-4">
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> {% if task %}Update Task{% else %}Create Task{% endif %}
+                        </button>
+                        
+                        {% if task %}
+                        <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-danger" data-confirm="Are you sure you want to delete this task?">
+                                <i class="fas fa-trash-alt me-1"></i> Delete Task
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if task %}
+<!-- Task History and Comments Section -->
+<div class="row mt-4">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Comments</h5>
+            </div>
+            <div class="card-body">
+                <!-- Comment Form -->
+                <form action="{{ url_for('add_comment', task_id=task.id) }}" method="POST" id="comment-form">
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Add a Comment</label>
+                        <textarea class="form-control" id="comment-input" name="content" rows="2" required></textarea>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-1"></i> Post Comment
+                        </button>
+                    </div>
+                </form>
+                
+                <hr>
+                
+                <!-- Comments List -->
+                <div class="comments-list">
+                    {% for comment in task.comments|sort(attribute='created_at', reverse=True) %}
+                    <div class="comment-box p-3 mb-3 bg-light rounded">
+                        <div class="d-flex justify-content-between">
+                            <div class="comment-user">
+                                <i class="fas fa-user-circle me-1"></i> {{ comment.user.username }}
+                                {% if comment.user.role == 'admin' %}
+                                <span class="badge bg-primary ms-1">Admin</span>
+                                {% else %}
+                                <span class="badge bg-secondary ms-1">Client</span>
+                                {% endif %}
+                            </div>
+                            <div class="comment-time">
+                                {{ comment.created_at.strftime('%d %b, %Y %H:%M') }}
+                            </div>
+                        </div>
+                        <div class="comment-content mt-2">
+                            {{ comment.content }}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted">No comments yet</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Attachments</h5>
+            </div>
+            <div class="card-body">
+                <!-- File Upload Form -->
+                <form action="{{ url_for('upload_attachment', task_id=task.id) }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Upload File</label>
+                        <input type="file" class="form-control" id="file-upload" name="file" required>
+                        <div id="file-preview"></div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-1"></i> Upload
+                        </button>
+                    </div>
+                </form>
+                
+                <hr>
+                
+                <!-- Attachments List -->
+                <div class="attachments-list">
+                    {% for attachment in task.attachments|sort(attribute='uploaded_at', reverse=True) %}
+                    <div class="attachment-item">
+                        <div class="attachment-icon">
+                            <i class="fas fa-file"></i>
+                        </div>
+                        <div class="attachment-info">
+                            <div class="attachment-name">{{ attachment.original_filename }}</div>
+                            <div class="attachment-meta">
+                                <span>{{ attachment.file_type }}</span> •
+                                <span>Uploaded by {{ attachment.user.username }}</span> •
+                                <span>{{ attachment.uploaded_at.strftime('%d %b, %Y') }}</span>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('download_file', filename=attachment.filename) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted">No attachments yet</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/tasks.js') }}"></script>
+{% endblock %}

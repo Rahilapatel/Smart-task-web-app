@@ -1,0 +1,145 @@
+{% extends "layout.html" %}
+
+{% block title %}My Tasks{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">My Tasks</h1>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label for="search-input" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="search-input" placeholder="Search tasks..." 
+                           value="{{ request.args.get('search', '') }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="filter-status" class="form-label">Status</label>
+                    <select class="form-select" id="filter-status">
+                        <option value="">All Statuses</option>
+                        <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="in-progress" {% if request.args.get('status') == 'in-progress' %}selected{% endif %}>In Progress</option>
+                        <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>Completed</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label for="filter-priority" class="form-label">Priority</label>
+                    <select class="form-select" id="filter-priority">
+                        <option value="">All Priorities</option>
+                        <option value="low" {% if request.args.get('priority') == 'low' %}selected{% endif %}>Low</option>
+                        <option value="medium" {% if request.args.get('priority') == 'medium' %}selected{% endif %}>Medium</option>
+                        <option value="high" {% if request.args.get('priority') == 'high' %}selected{% endif %}>High</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <div class="form-group w-100">
+                    <div class="d-grid gap-2 d-md-flex">
+                        <button class="btn btn-primary w-100" onclick="filterTasks()">
+                            <i class="fas fa-filter me-1"></i> Filter
+                        </button>
+                        <button class="btn btn-outline-secondary w-100" onclick="resetFilters()">
+                            <i class="fas fa-undo me-1"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task List -->
+<div class="card">
+    <div class="card-body p-0">
+        {% if tasks %}
+        <div class="list-group list-group-flush">
+            {% for task in tasks %}
+            <div class="list-group-item task-card priority-{{ task.priority }}">
+                <div class="d-flex w-100 justify-content-between mb-2">
+                    <h5 class="mb-1">{{ task.title }}</h5>
+                    <div>
+                        <span class="badge {{ 'bg-danger' if task.priority == 'high' else ('bg-warning' if task.priority == 'medium' else 'bg-info') }} me-1">
+                            {{ task.priority }}
+                        </span>
+                        <span class="badge {{ 'bg-success' if task.status == 'completed' else ('bg-primary' if task.status == 'in-progress' else 'bg-secondary') }}">
+                            {{ task.status }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="d-flex w-100 justify-content-between mb-2">
+                    <div>
+                        <p class="mb-1">
+                            {% if task.description %}
+                                {{ task.description|truncate(150) }}
+                            {% else %}
+                                <span class="text-muted">No description</span>
+                            {% endif %}
+                        </p>
+                        <small class="d-block mb-1">
+                            <i class="fas fa-user me-1"></i> Provider: <strong>{{ task.creator.username }}</strong>
+                        </small>
+                        {% if task.service_type %}
+                        <small class="d-block mb-1">
+                            <i class="fas fa-tag me-1"></i> Service Type: {{ task.service_type }}
+                        </small>
+                        {% endif %}
+                    </div>
+                    <div class="text-end">
+                        {% if task.deadline %}
+                        <small class="d-block text-nowrap due-date" data-date="{{ task.deadline }}" data-bs-toggle="tooltip" title="{{ task.deadline.strftime('%d %b, %Y - %H:%M') }}">
+                            <i class="far fa-calendar-alt me-1"></i> {{ task.deadline.strftime('%d %b, %Y') }}
+                        </small>
+                        {% endif %}
+                        <small class="d-block text-nowrap text-muted">
+                            <i class="far fa-clock me-1"></i> Created: {{ task.created_at.strftime('%d %b, %Y') }}
+                        </small>
+                    </div>
+                </div>
+                
+                <div class="d-flex mt-1">
+                    <a href="{{ url_for('client_task_detail', task_id=task.id) }}" class="btn btn-sm btn-primary me-2">
+                        <i class="fas fa-eye me-1"></i> View Details
+                    </a>
+                    
+                    <form action="{{ url_for('update_task_status', task_id=task.id) }}" method="POST" class="task-status-form d-inline me-2" data-task-id="{{ task.id }}">
+                        <input type="hidden" name="status" value="in-progress">
+                        <button type="submit" class="btn btn-sm btn-outline-primary task-start-btn-{{ task.id }}" 
+                                {% if task.status == 'in-progress' or task.status == 'completed' %}disabled{% endif %}>
+                            <i class="fas fa-play me-1"></i> Start
+                        </button>
+                    </form>
+                    
+                    <form action="{{ url_for('update_task_status', task_id=task.id) }}" method="POST" class="task-status-form d-inline" data-task-id="{{ task.id }}">
+                        <input type="hidden" name="status" value="completed">
+                        <button type="submit" class="btn btn-sm btn-outline-success task-complete-btn-{{ task.id }}" 
+                                {% if task.status == 'completed' %}disabled{% endif %}>
+                            <i class="fas fa-check me-1"></i> Complete
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+            <h5>No tasks found</h5>
+            <p class="text-muted">There are no tasks assigned to you yet or try adjusting your filters</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/tasks.js') }}"></script>
+{% endblock %}

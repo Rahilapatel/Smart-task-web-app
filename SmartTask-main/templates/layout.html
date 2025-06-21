@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartTask - {% block title %}Task Coordination Platform{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    
+    <!-- Chart.js for dashboard charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    
+    {% block head_content %}{% endblock %}
+</head>
+<body>
+    <!-- Main Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+                <i class="fas fa-tasks me-2"></i>
+                <span>SmartTask</span>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.role == 'admin' %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == url_for('admin_dashboard') %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">
+                                    <i class="fas fa-chart-line"></i> Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == url_for('admin_tasks') %}active{% endif %}" href="{{ url_for('admin_tasks') }}">
+                                    <i class="fas fa-clipboard-list"></i> Tasks
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == url_for('admin_clients') %}active{% endif %}" href="{{ url_for('admin_clients') }}">
+                                    <i class="fas fa-users"></i> Clients
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == url_for('client_dashboard') %}active{% endif %}" href="{{ url_for('client_dashboard') }}">
+                                    <i class="fas fa-chart-line"></i> Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == url_for('client_tasks') %}active{% endif %}" href="{{ url_for('client_tasks') }}">
+                                    <i class="fas fa-clipboard-list"></i> My Tasks
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                
+                <ul class="navbar-nav">
+                    {% if current_user.is_authenticated %}
+                        <!-- Notifications -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle position-relative" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-bell"></i>
+                                {% set notification_count = get_unread_notification_count() %}
+                                {% if notification_count > 0 %}
+                                    <span id="notification-counter" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        {{ notification_count }}
+                                    </span>
+                                {% endif %}
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationsDropdown">
+                                <h6 class="dropdown-header">Notifications</h6>
+                                <div class="dropdown-divider"></div>
+                                {% set recent_notifications = current_user.notifications|sort(attribute='created_at', reverse=True) %}
+                                {% for notification in recent_notifications[0:5] %}
+                                    <a href="#" class="dropdown-item notification-link {% if not notification.is_read %}unread-notification{% endif %}" 
+                                       data-notification-id="{{ notification.id }}" id="notification-{{ notification.id }}">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ notification.title }}</h6>
+                                            <small>{{ notification.created_at.strftime('%H:%M') }}</small>
+                                        </div>
+                                        <p class="mb-1">{{ notification.message }}</p>
+                                        <small>{{ notification.created_at.strftime('%d %b, %Y') }}</small>
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                {% else %}
+                                    <div class="dropdown-item text-center">
+                                        <p class="mb-0 text-muted">No notifications</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </li>
+                        
+                        <!-- User actions -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle me-1"></i> {{ current_user.username }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><span class="dropdown-item-text text-muted">{{ current_user.role|capitalize }}</span></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Log Out</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Overlay for mobile sidebar -->
+    <div class="overlay" id="sidebarOverlay"></div>
+    
+    <!-- Mobile sidebar toggle button -->
+    <div class="sidebar-toggle d-md-none" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+    </div>
+    
+    <!-- Main Content -->
+    <main class="py-4">
+        <div class="container">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            {% if current_user.is_authenticated %}
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="sidebar mb-4" id="sidebar">
+                            <div class="p-3 mb-3 rounded">
+                                <h5 class="mb-0">{{ current_user.username }}</h5>
+                                <small class="text-muted">{{ current_user.role.capitalize() }}</small>
+                            </div>
+                            
+                            <div class="sidebar-nav">
+                                {% if current_user.role == 'admin' %}
+                                    <!-- Admin Menu -->
+                                    <a class="nav-link {% if request.path == url_for('admin_dashboard') %}active{% endif %}" 
+                                       href="{{ url_for('admin_dashboard') }}">
+                                        <i class="fas fa-chart-line"></i> Dashboard
+                                    </a>
+                                    <a class="nav-link {% if request.path == url_for('admin_tasks') %}active{% endif %}" 
+                                       href="{{ url_for('admin_tasks') }}">
+                                        <i class="fas fa-clipboard-list"></i> Manage Tasks
+                                    </a>
+                                    <a class="nav-link {% if request.path == url_for('admin_clients') %}active{% endif %}" 
+                                       href="{{ url_for('admin_clients') }}">
+                                        <i class="fas fa-users"></i> Manage Clients
+                                    </a>
+                                    <a class="nav-link {% if request.path.startswith('/admin/tasks/new') %}active{% endif %}" 
+                                       href="{{ url_for('new_task') }}">
+                                        <i class="fas fa-plus-circle"></i> New Task
+                                    </a>
+                                {% else %}
+                                    <!-- Client Menu -->
+                                    <a class="nav-link {% if request.path == url_for('client_dashboard') %}active{% endif %}" 
+                                       href="{{ url_for('client_dashboard') }}">
+                                        <i class="fas fa-chart-line"></i> Dashboard
+                                    </a>
+                                    <a class="nav-link {% if request.path == url_for('client_tasks') %}active{% endif %}" 
+                                       href="{{ url_for('client_tasks') }}">
+                                        <i class="fas fa-clipboard-list"></i> My Tasks
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-9 content-wrapper" id="contentWrapper">
+                        {% block content %}{% endblock %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="row">
+                    <div class="col-12">
+                        {{ self.content() }}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer mt-auto py-2 border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0 text-muted">&copy; 2025 SmartTask. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <ul class="list-inline mb-0">
+                        <li class="list-inline-item">
+                            <a href="#" class="text-muted">Privacy Policy</a>
+                        </li>
+                        <li class="list-inline-item">
+                            <a href="#" class="text-muted">Terms of Service</a>
+                        </li>
+                        <li class="list-inline-item">
+                            <a href="#" class="text-muted">Support</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Core JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/tasks.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ai-task.js') }}"></script>
+    
+    <!-- Page Specific JavaScript -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

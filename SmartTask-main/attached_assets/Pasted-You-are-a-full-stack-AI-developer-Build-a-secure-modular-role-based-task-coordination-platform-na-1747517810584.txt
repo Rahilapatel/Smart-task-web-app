@@ -1,0 +1,112 @@
+You are a full-stack AI developer. Build a secure, modular, role-based task coordination platform named SmartTask using Node.js (Express), React (or simple HTML/JS for quick setup), MongoDB, and JWT/Firebase Auth.
+
+The platform supports Admin and Client roles with distinct privileges, protected routes, and real-time collaboration features. Ensure clean code separation, RBAC, and AI-based functionality integration.
+
+🔐 Authentication and RBAC
+Use JWT or Firebase Auth for login/signup.
+
+Implement middleware to protect routes based on role (admin, client).
+
+Ensure session-based login with auto-expiry and refresh.
+
+Admin routes: /admin/dashboard, /admin/tasks, /admin/clients
+
+Client routes: /client/dashboard, /client/tasks
+
+👥 Roles & Permissions
+Admin (Service Provider):
+Create tasks (manual or via AI generator using OpenAI API).
+
+Inputs: clientName, serviceType, priority, deadline
+
+Outputs: AI-generated taskTitle, description
+
+Assign tasks to clients with due date, priority, attachments.
+
+Access dashboard with filters, graphs, and export options.
+
+View task analytics, trends, and download reports (PDF/Excel).
+
+Client:
+View tasks assigned to them.
+
+Update task status (in-progress, completed, pending).
+
+Add comments, upload deliverables (PDFs, Docs, images).
+
+Access notification panel, chat assistant, task viewer.
+
+🔄 Real-Time Updates
+Implement Socket.IO for:
+
+Task assignment alerts
+
+Live task updates between Admin and Client
+
+Show toast/snackbar alerts on real-time changes.
+
+🔔 Notifications
+Email alerts to clients:
+
+On task creation, updates, or deadline changes.
+
+Use Firebase Cloud Messaging (FCM) for push notifications.
+
+Add reminder service for overdue tasks.
+
+💬 AI Chatbot (Optional but Bonus)
+Add chatbot using GPT-4 / Dialogflow / Rasa.
+
+Must answer:
+
+Navigation help
+
+FAQs
+
+Task queries: "Show my completed tasks", "Pending ones?"
+
+📂 Cloud File Handling
+Upload & retrieve task-related files using:
+
+Firebase Storage, Google Drive API, or Dropbox SDK.
+
+Organize by clientID and taskID.
+
+🎨 UI/UX Essentials
+Responsive design with Dark/Light Mode toggle.
+
+Clean, user-friendly layout for both roles.
+
+Dashboard widgets:
+
+Task status overview
+
+Completion trends
+
+Filters for tasks and clients
+
+📦 Project Structure
+cpp
+Copy
+Edit
+/backend
+  └── models/       // Mongoose schemas
+  └── routes/       // Protected route files for Admin & Client
+  └── controllers/  // Logic split by role
+  └── middleware/   // Auth & RBAC protection
+  └── utils/        // Email, file, and AI helpers
+/frontend
+  └── components/   // AdminPanel, ClientPanel, TaskCard, Chatbot
+  └── pages/        // Login, Dashboard, TaskView
+  └── utils/        // ThemeToggle, API helpers
+.env               // API Keys for GPT, Firebase, etc.
+🧪 Testing Considerations
+Test all protected routes with correct/incorrect roles.
+
+Validate AI task generation with multiple inputs.
+
+Check file upload success, alerts, and downloads.
+
+Validate real-time updates across two roles.
+
+Verify chatbot accuracy for known commands.

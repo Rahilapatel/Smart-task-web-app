@@ -1,0 +1,212 @@
+{% extends "layout.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Admin Dashboard</h1>
+    <a href="{{ url_for('admin_tasks') }}" class="btn btn-primary">
+        <i class="fas fa-chart-bar me-1"></i> View All Reports
+    </a>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row">
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card dashboard-card h-100">
+            <div class="card-body p-3">
+                <h5 class="card-title mb-3">Total Tasks</h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h2 mb-0 fw-bold">{{ total_tasks }}</div>
+                        <div class="text-success mt-2">
+                            <i class="fas fa-arrow-up me-1"></i> +12% from last month
+                        </div>
+                    </div>
+                    <div class="card-icon">
+                        <i class="fas fa-chart-bar text-primary fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card dashboard-card h-100">
+            <div class="card-body p-3">
+                <h5 class="card-title mb-3">Completion Rate</h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h2 mb-0 fw-bold">33%</div>
+                        <div class="text-success mt-2">
+                            <i class="fas fa-arrow-up me-1"></i> +5% from last month
+                        </div>
+                    </div>
+                    <div class="card-icon">
+                        <i class="fas fa-chart-pie text-purple fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card dashboard-card h-100">
+            <div class="card-body p-3">
+                <h5 class="card-title mb-3">Overdue Tasks</h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h2 mb-0 fw-bold">2</div>
+                        <div class="text-danger mt-2">
+                            <i class="fas fa-arrow-up me-1"></i> +3 from last month
+                        </div>
+                    </div>
+                    <div class="card-icon">
+                        <i class="fas fa-clock text-warning fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6 mb-4">
+        <div class="card dashboard-card h-100">
+            <div class="card-body p-3">
+                <h5 class="card-title mb-3">Active Clients</h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="h2 mb-0 fw-bold">1</div>
+                        <div class="text-muted mt-2">
+                            <i class="fas fa-equals me-1"></i> Same as last month
+                        </div>
+                    </div>
+                    <div class="card-icon">
+                        <i class="fas fa-users text-success fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row">
+    <!-- Task Status Chart -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Task Status Distribution</h5>
+                <div style="height: 300px;">
+                    <canvas id="taskStatusChart" 
+                            data-pending="{{ pending_tasks }}" 
+                            data-in-progress="{{ in_progress_tasks }}" 
+                            data-completed="{{ completed_tasks }}">
+                    </canvas>
+                </div>
+                <div class="mt-3 d-flex justify-content-center">
+                    <span class="badge me-2" style="background-color: #f0ad4e;"><i class="fas fa-square me-1"></i> Pending</span>
+                    <span class="badge me-2" style="background-color: #5bc0de;"><i class="fas fa-square me-1"></i> In Progress</span>
+                    <span class="badge me-2" style="background-color: #5cb85c;"><i class="fas fa-square me-1"></i> Completed</span>
+                    <span class="badge" style="background-color: #d9534f;"><i class="fas fa-square me-1"></i> Cancelled</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tasks by Priority -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Tasks by Priority</h5>
+                <div style="height: 300px;">
+                    <canvas id="taskPriorityChart"></canvas>
+                </div>
+                <div class="mt-3 d-flex justify-content-center">
+                    <span class="badge me-2" style="background-color: #5cb85c;"><i class="fas fa-square me-1"></i> Low</span>
+                    <span class="badge me-2" style="background-color: #f0ad4e;"><i class="fas fa-square me-1"></i> Medium</span>
+                    <span class="badge" style="background-color: #d9534f;"><i class="fas fa-square me-1"></i> High</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Completion Trends -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Task Completion Trends</h5>
+                <div style="height: 300px;">
+                    <canvas id="taskTimelineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tasks Due Soon -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Tasks Due Soon</h5>
+                <a href="{{ url_for('admin_tasks') }}" class="btn btn-sm btn-outline-primary">View All Tasks</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Client</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Due Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in due_soon %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('edit_task', task_id=task.id) }}">{{ task.title }}</a>
+                                </td>
+                                <td>{{ task.client.username }}</td>
+                                <td>
+                                    <span class="badge {{ 'bg-danger' if task.priority == 'high' else ('bg-warning' if task.priority == 'medium' else 'bg-info') }}">
+                                        {{ task.priority }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if task.status == 'completed' else ('bg-primary' if task.status == 'in-progress' else 'bg-secondary') }}">
+                                        {{ task.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if task.deadline %}
+                                        <span class="due-date" data-date="{{ task.deadline }}" data-bs-toggle="tooltip" title="{{ task.deadline.strftime('%d %b, %Y - %H:%M') }}">
+                                            {{ task.deadline.strftime('%d %b, %Y') }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">Not set</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-3">No tasks due soon</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tasks.js') }}"></script>
+{% endblock %}
